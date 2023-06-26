@@ -18,8 +18,8 @@ def main():
     test_loader = data_loader.test(batch_size=args.batch_size)
     ncl_loader = data_loader.ncl(batch_size=args.batch_size)
 
-    callbacks = [EarlyStopping(monitor='val_BinaryF1Score', patience=args.patience, mode='max', verbose=True),
-                 ModelCheckpoint(monitor='val_BinaryF1Score', mode='max')]
+    callbacks = [EarlyStopping(monitor='val_BinaryAUROC', patience=args.patience, mode='max', verbose=True),
+                 ModelCheckpoint(monitor='val_BinaryAUROC', mode='max')]
 
     if args.model == 'cnn':
         run_name = 'CNN3L_' + time.strftime("%Y%m%d-%H%M%S")

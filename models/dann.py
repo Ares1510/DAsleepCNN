@@ -13,19 +13,30 @@ class FeatureExtractor(nn.Module):
         super().__init__()
 
         self.features = nn.Sequential(
-            nn.Conv1d(1, 32, 3, padding=1),
+            nn.Conv1d(1, 16, 3, padding=1),
+            nn.BatchNorm1d(16),
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Conv1d(16, 32, 3, padding=1),
             nn.BatchNorm1d(32),
             nn.ReLU(),
             nn.MaxPool1d(2),
-            nn.Conv1d(32, 48, 3, padding=1),
-            nn.BatchNorm1d(48),
-            nn.ReLU(),
-            nn.MaxPool1d(2),
-            nn.Conv1d(48, 64, 3, padding=1),
+            nn.Conv1d(32, 64, 3, padding=1),
             nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.MaxPool1d(2),
         )
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
 
     def forward(self, x):
         x = x.unsqueeze(1).float()
@@ -36,10 +47,16 @@ class LabelClassifier(nn.Module):
     def __init__(self):
         super().__init__()
         self.classifier = nn.Sequential(
-            nn.Linear(64 * 12, 32),
+            nn.Linear(64 * 12, 16),
             nn.ReLU(),
-            nn.Linear(32, 1),
+            nn.Linear(16, 1)
         )
+    
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+
     
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -50,11 +67,16 @@ class DomainClassifier(nn.Module):
     def __init__(self):
         super().__init__()
         self.classifier = nn.Sequential(
-            nn.Linear(64 * 12, 48),
+            nn.Linear(64 * 12, 32),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(48, 1)
+            nn.Linear(32, 1)
         )
+    
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
     
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -131,7 +153,7 @@ class CNN3L_Lightning(pl.LightningModule):
         return loss
     
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=self.lr)
+        return optim.SGD(self.parameters(), lr=self.lr, momentum=0.9)
     
 
 #class to implement DANN with lightning
